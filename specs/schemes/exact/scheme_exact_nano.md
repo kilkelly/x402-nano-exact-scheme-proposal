@@ -120,7 +120,7 @@ No additional `extra` fields are required.
 
 `PaymentPayload.payload` in the `PAYMENT-SIGNATURE` header must follow the following schema:
 
-- `block`: The full contents of the [send block] which authorizes the transfer of [raw units] on the Nano network. During creation of the send block, the **`Client`** MUST use Nano RPC action [account_info] to request the account information it needs to construct the block. Additionally `PaymentPayload.payload.block.work`, the required Proof-of-Work for anti-spam purposes on the Nano network, MUST be generated using `PaymentPayload.payload.block.previous` as input. The `representative` field returned by Nano RPC action [account_info] (call with `representative` parameter equal to `true`) SHOULD be used during creation of the send block to avoid re-delegation of the voting weight for the **`Client`**'s Nano account.
+- `block`: The full contents of the [send block] which authorizes the transfer of [raw units] on the Nano network. During creation of the send block, the **`Client`** MUST use Nano RPC action [account_info] to request the account information it needs to construct the block. Additionally `PaymentPayload.payload.block.work`, the required Proof-of-Work for anti-spam purposes on the Nano network, MUST be generated using `PaymentPayload.payload.block.previous` as input. The `representative` field returned by Nano RPC action [account_info] (call with `representative` parameter set to `true`) SHOULD be used during creation of the send block to avoid re-delegation of the voting weight for the **`Client`**'s Nano account.
 
 ## Verification
 
@@ -137,7 +137,7 @@ For the **`Facilitator`** to verify a payment in the `exact` scheme, these check
 9. **payTo Check** - `PaymentPayload.payload.block.link_as_account` MUST exactly match `PaymentPayload.accepted.payTo`. `PaymentPayload.payload.block.link_as_account` MUST also be the correct Nano account encoding of the 32-byte public key in `PaymentPayload.payload.block.link`.
 10. **Previous Confirmation Check** - **`Facilitator`** MUST verify that `PaymentPayload.payload.block` does not already exist on the Nano network. Use Nano RPC action [block_info], passing the calculated hash of `PaymentPayload.payload.block` as a parameter, to check for existence of this block. If [block_info] finds the block, parse the response and return `error_block_already_confirmed` when field `confirmed` is `true` and `error_block_awaiting_confirmation` when field `confirmed` is `false`. This check also provides fork protection (see **Fork protection** in **Appendix** later in this document).
 11. **Account Check** - `PaymentPayload.payload.block.account` MUST exist on the Nano network. Use Nano RPC action [account_info] to query information for `PaymentPayload.payload.block.account` and ensure that the response has a `frontier` field.
-12. **Frontier Hash Check** - `PaymentPayload.payload.block.previous` MUST exactly match frontier hash for `PaymentPayload.payload.block.account`. Use Nano RPC action [account_info] to query information for `PaymentPayload.payload.block.account` and check that the `frontier` field returned in the response is equal to `PaymentPayload.payload.block.previous`.
+12. **Frontier Hash Check** - `PaymentPayload.payload.block.previous` MUST exactly match frontier hash for `PaymentPayload.payload.block.account`. Use Nano RPC action [account_info] (call with `include_confirmed` parameter set to `true`) to query information for `PaymentPayload.payload.block.account` and check that the `confirmed_frontier` field in the response is equal to `PaymentPayload.payload.block.previous`.
 13. **Balance Check** - `PaymentPayload.payload.block.account` MUST have balance to cover payment. Use Nano RPC action [account_info] to query information for `PaymentPayload.payload.block.account` and ensure that the delta between the `balance` field (_previous_balance_) returned in the response and `PaymentPayload.payload.block.balance` (_new_balance_) is equal to `PaymentPayload.accepted.amount` (_payment_amount_). Calculation is _previous_balance_ - _new_balance_ = _payment_amount_.
 14. **Work Difficulty Check** - `PaymentPayload.payload.block.work` MUST be validated to ensure it meets the Nano network's current minimum difficulty threshold for a send transaction.
 
@@ -217,7 +217,7 @@ If a Settlement fails due to the [send block] already being broadcast or confirm
 | `error_invalid_block`               | `PaymentPayload.payload.block` is not a valid Nano send block                                                                                                    | Block Structure Check, Valid Block Check, Unsuccessful Settlement Response                        |
 | `error_payto_link_mismatch`         | `PaymentPayload.payload.block.link_as_account` differs from `PaymentPayload.accepted.payTo`                                                                      | payTo Check, Unsuccessful Settlement Response                                                     |
 | `error_account_not_found`           | `PaymentPayload.payload.block.account` not found on the Nano network                                                                                             | Account Check, Unsuccessful Settlement Response                                                   |
-| `error_previous_not_frontier`       | `PaymentPayload.payload.block.previous` does not match `frontier` for `PaymentPayload.payload.block.account`                                                     | Frontier Hash Check, Unsuccessful Settlement Response                                             |
+| `error_previous_not_frontier`       | `PaymentPayload.payload.block.previous` does not match `confirmed_frontier` for `PaymentPayload.payload.block.account`                                           | Frontier Hash Check, Unsuccessful Settlement Response                                             |
 | `error_not_enough_balance`          | Balance for `PaymentPayload.payload.block.account` is not enough to cover `PaymentPayload.accepted.amount`                                                       | Balance Check, Unsuccessful Settlement Response                                                   |
 | `error_amount_mismatch`             | Delta between the balance for `PaymentPayload.payload.block.account` and `PaymentPayload.payload.block.balance` is not equal to `PaymentPayload.accepted.amount` | Balance Check, Unsuccessful Settlement Response                                                   |
 | `error_invalid_work`                | `PaymentPayload.payload.block.work` is invalid                                                                                                                   | Work Difficulty Check, Unsuccessful Settlement Response                                           |
@@ -231,12 +231,13 @@ If a Settlement fails due to the [send block] already being broadcast or confirm
 
 ### [account_info] action
 
-Returns information for an account on the Nano network. Specify the Nano account with `account`.
+Returns information for an account on the Nano network. Specify the Nano account with `account`. Make sure both `include_confirmed` and `representative` are set to `true`.
 
 ```
 {
   "action": "account_info",
   "account": "nano_3qgmh14nwztqw4wmcdzy4xpqeejey68chx6nciczwn9abji7ihhum9qtpmdr",
+  "include_confirmed": "true",
   "representative": "true"
 }
 ```
@@ -259,7 +260,7 @@ Used by: **`Facilitator`**
 
 ### [process] action (for a send block)
 
-Broadcasts a [send block] to the Nano network. Note that `subtype` is set to `send`, and that `block` has the same structure as `PaymentPayload.payload.block`.
+Broadcasts a [send block] to the Nano network. Make sure that `subtype` is set to `send`, and that `block` has the same structure as `PaymentPayload.payload.block`.
 
 ```
 {
