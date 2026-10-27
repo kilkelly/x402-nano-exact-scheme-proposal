@@ -892,6 +892,83 @@ The same block presented again at `accepted.amount` = `1`. `/verify`:
 
 </details>
 
+### V14: `workOptional`, the V1 block with the sixteen-zero work placeholder
+
+The V1 block again, with `"work": "0000000000000000"` in the `PaymentPayload` (the placeholder from **Who should generate work for the send block?** in **Appendix**) and `extra.workOptional: true` in `PaymentRequirements`. Nothing else differs from V1. Generated 2026-10-27; broadcasts nothing, since the V1 block is already confirmed.
+
+`PaymentPayload.payload.block`:
+
+```json
+{
+  "type": "state",
+  "account": "nano_1i3y944esngqw6wb6ia68dotj4yuqctch9kx8ct65twt8ewi4rdcfgax7ggf",
+  "previous": "DE891E21F480F772E68B61B1C7D8BF6525E5D9FAE64AD5B7BC71F9486348B943",
+  "representative": "nano_3arg3asgtigae3xckabaaewkx3bzsh7nwz7jkmjos79ihyaxwphhm6qgjps4",
+  "balance": "9787318189447476890320950701",
+  "link": "776E05C7A2D3B5887DCE7EB2831078FCCDB9AED77EC6B27CDC05550B07D744A3",
+  "link_as_account": "nano_1xug1q5t7nxoj3ywwzokiea9jz8fq8qfgzp8pbyfr3co3e5xgj755uofu8ue",
+  "signature": "65AFBF7622955A1D6E5E0703B479C33BA652CB4C29477968D2E8864891124875C3EA3F658F597CDB689086F2DE1638BAC0847CFC05CF682682967927D465FB03",
+  "work": "0000000000000000"
+}
+```
+
+What a verifier can check offline, computed with the same library as V1:
+
+- The block hash is `1D60903EFD920FA78746E18F08C021EE7B8155205709DF5A4125BBDCF96D0BEB`, identical to V1's: `work` is not an input to the hash.
+- V1's `signature` verifies against that hash and the `account` public key unchanged: the Client signed nothing about the work.
+- `"0000000000000000"` does not meet the send threshold `fffffff800000000` over `previous`; V1's `"3f6ff9e7b7ba27a7"` does. The placeholder is never valid work, so a broadcaster that forwards it unchanged gets the node's refusal, and the draft's "MUST replace before `process`" is what makes the flag usable.
+
+The `process` request the broadcaster sends, with the work it generated over `previous` in place of the placeholder. The `PaymentPayload` the Client sent is not touched:
+
+```json
+{
+  "action": "process",
+  "subtype": "send",
+  "json_block": "true",
+  "block": {
+    "type": "state",
+    "account": "nano_1i3y944esngqw6wb6ia68dotj4yuqctch9kx8ct65twt8ewi4rdcfgax7ggf",
+    "previous": "DE891E21F480F772E68B61B1C7D8BF6525E5D9FAE64AD5B7BC71F9486348B943",
+    "representative": "nano_3arg3asgtigae3xckabaaewkx3bzsh7nwz7jkmjos79ihyaxwphhm6qgjps4",
+    "balance": "9787318189447476890320950701",
+    "link": "776E05C7A2D3B5887DCE7EB2831078FCCDB9AED77EC6B27CDC05550B07D744A3",
+    "link_as_account": "nano_1xug1q5t7nxoj3ywwzokiea9jz8fq8qfgzp8pbyfr3co3e5xgj755uofu8ue",
+    "signature": "65AFBF7622955A1D6E5E0703B479C33BA652CB4C29477968D2E8864891124875C3EA3F658F597CDB689086F2DE1638BAC0847CFC05CF682682967927D465FB03",
+    "work": "3f6ff9e7b7ba27a7"
+  }
+}
+```
+
+Presented live to a Facilitator that advertises `workOptional: false`, the `/verify` answer is from check 10, not check 14: the Facilitator computes the hash from the placeholder payload, finds the confirmed V1 block, and names it, `transaction` included on `/settle`. The work field is read only after the chain has been asked.
+
+`/verify`:
+
+```json
+{
+  "isValid": false,
+  "invalidReason": "block_already_exists",
+  "detail": "block already on the chain and confirmed",
+  "payer": "nano_1i3y944esngqw6wb6ia68dotj4yuqctch9kx8ct65twt8ewi4rdcfgax7ggf",
+  "invalidMessage": "block already on the chain and confirmed"
+}
+```
+
+`/settle`:
+
+```json
+{
+  "success": false,
+  "errorReason": "block_already_exists",
+  "detail": "block already on the chain and confirmed (hash 1D60903EFD920FA78746E18F08C021EE7B8155205709DF5A4125BBDCF96D0BEB, not broadcast through this facilitator)",
+  "transaction": "1D60903EFD920FA78746E18F08C021EE7B8155205709DF5A4125BBDCF96D0BEB",
+  "network": "nano:mainnet",
+  "payer": "nano_1i3y944esngqw6wb6ia68dotj4yuqctch9kx8ct65twt8ewi4rdcfgax7ggf",
+  "errorMessage": "block already on the chain and confirmed (hash 1D60903EFD920FA78746E18F08C021EE7B8155205709DF5A4125BBDCF96D0BEB, not broadcast through this facilitator)"
+}
+```
+
+In the Error Vocabulary the code is `error_block_already_confirmed`, as in V2. A Facilitator that advertises `workOptional: true` and holds no such block would instead defer check 14, run checks 1 to 13, generate work over `previous` at Settlement and `process` the block above with that work.
+
 ## Appendix
 
 ### Fork protection (recommended practice for **`Resource Server`** and **`Facilitator`**)
