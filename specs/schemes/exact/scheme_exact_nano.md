@@ -368,7 +368,7 @@ Used by: **`Facilitator`**
 
 ## Test Vectors
 
-Generated on 2026-10-01 against a live facilitator (`facilitator.pursekeeper.dev`, Node implementation) and the Nano main network. Every hash below can be checked on any Nano node or block explorer. V1 and V13 are real settled payments; V2 to V12 are `/verify` requests that broadcast nothing. V1 to V12 were generated on 2026-10-01, V13 on 2026-10-14 against the same facilitator after it took up the amount clause of check 10 (Previous Confirmation Check). The payer is an ordinary account funded for this purpose; `payTo` is a seller account. The capture of every request and response as sent and received is at [pursekeeper/api, examples/research/x402-vectors-2026-10-01.json](https://github.com/pursekeeper/api/blob/main/examples/research/x402-vectors-2026-10-01.json) and, for V13, [examples/research/x402-vector-v13-2026-10-14.json](https://github.com/pursekeeper/api/blob/main/examples/research/x402-vector-v13-2026-10-14.json).
+Generated on 2026-10-01 against a live facilitator (`facilitator.pursekeeper.dev`, Node implementation) and the Nano main network. Every hash below can be checked on any Nano node or block explorer. V1 and V13 are real settled payments; V2 to V12 are `/verify` requests that broadcast nothing. V1 to V12 were generated on 2026-10-01, V13 on 2026-10-14 against the same facilitator after it took up the amount clause of check 9 (Previous Confirmation Check), V14 on 2026-10-27, and V15 on 2026-10-28 (two real 1-raw sends, the second refused while the first was awaiting confirmation and settled unchanged once it was). The payer is an ordinary account funded for this purpose; `payTo` is a seller account. The capture of every request and response as sent and received is at [pursekeeper/api, examples/research/x402-vectors-2026-10-01.json](https://github.com/pursekeeper/api/blob/main/examples/research/x402-vectors-2026-10-01.json) and, for V13, [examples/research/x402-vector-v13-2026-10-14.json](https://github.com/pursekeeper/api/blob/main/examples/research/x402-vector-v13-2026-10-14.json); for V15, [examples/research/x402-vector-v15-2026-10-28.json](https://github.com/pursekeeper/api/blob/main/examples/research/x402-vector-v15-2026-10-28.json).
 
 The `invalidReason` and `errorReason` values are the ones this facilitator returned when the vectors were cut, before this document's Error Vocabulary existed; the vocabulary code each corresponds to is given beside it. Check numbers follow the Verification section of this document.
 
@@ -502,24 +502,24 @@ The exact V1 body presented again after settlement. `/verify`:
 }
 ```
 
-The settle refusal still names the original `transaction`, so a resource server whose first success reply was lost can learn that the payment went through without being served twice. This is the behaviour the **Unsuccessful Settlement Response** and **Blocks have no expiry** sections ask for; in the Error Vocabulary the code is `error_block_already_confirmed`, from check 10 (Previous Confirmation Check).
+The settle refusal still names the original `transaction`, so a resource server whose first success reply was lost can learn that the payment went through without being served twice. This is the behaviour the **Unsuccessful Settlement Response** and **Blocks have no expiry** sections ask for; in the Error Vocabulary the code is `error_block_already_confirmed`, from check 9 (Previous Confirmation Check).
 
 ### V3 to V12: refused at verification, nothing broadcast
 
-All are built on the payer's frontier after V1 (`1D60903EFD920FA78746E18F08C021EE7B8155205709DF5A4125BBDCF96D0BEB`, balance `9787318189447476890320950701`) with valid work `feec391ed40f8b85` for that frontier, except V7 (built on the pre-V1 frontier with V1's work) and V11 (a different, never-opened account). Each block is correctly signed by its account unless the row says otherwise, so checks 6 to 9 can be re-run offline from the JSON; checks 10 to 14 depend on the ledger state recorded above and will answer `error_previous_not_frontier` (`frontier_moved` here) once the payer's account moves on.
+All are built on the payer's frontier after V1 (`1D60903EFD920FA78746E18F08C021EE7B8155205709DF5A4125BBDCF96D0BEB`, balance `9787318189447476890320950701`) with valid work `feec391ed40f8b85` for that frontier, except V7 (built on the pre-V1 frontier with V1's work) and V11 (a different, never-opened account). Each block is correctly signed by its account unless the row says otherwise, so checks 6 to 8 can be re-run offline from the JSON; checks 9 to 13 depend on the ledger state recorded above and will answer `error_previous_not_frontier` (`frontier_moved` here) once the payer's account moves on.
 
 | Vector | Mutation from a valid block | Verification check that fails | `invalidReason` | Error Vocabulary |
 |---|---|---|---|---|
-| V3 | signature: last hex character changed | 7 (Valid Signature Check) | `invalid_signature` | `error_invalid_signature` |
-| V4 | balance = previous balance − amount + 1 (1 raw short) | 13 (Balance Check) | `amount_mismatch` | `error_amount_mismatch` |
-| V5 | balance = previous balance − 2 × amount (twice the amount) | 13 (Balance Check) | `amount_mismatch` | `error_amount_mismatch` |
-| V6 | link = public key of another account; link_as_account agrees with link | 9 (payTo Check) | `invalid_payto` | `error_payto_link_mismatch` |
-| V7 | previous = the frontier before V1 landed (a fork of V1 with a different balance) | 12 (Frontier Hash Check) | `frontier_moved` | `error_previous_not_frontier` |
-| V8 | work = 0000000000000001 | 14 (Work Difficulty Check) | `invalid_work` | `error_invalid_work` |
+| V3 | signature: last hex character changed | 7 (Valid Block Check) | `invalid_signature` | `error_invalid_block` |
+| V4 | balance = previous balance − amount + 1 (1 raw short) | 12 (Balance Check) | `amount_mismatch` | `error_amount_mismatch` |
+| V5 | balance = previous balance − 2 × amount (twice the amount) | 12 (Balance Check) | `amount_mismatch` | `error_amount_mismatch` |
+| V6 | link = public key of another account; link_as_account agrees with link | 8 (payTo Check) | `invalid_payto` | `error_payto_link_mismatch` |
+| V7 | previous = the frontier before V1 landed (a fork of V1 with a different balance) | 11 (Frontier Hash Check) | `frontier_moved` | `error_previous_not_frontier` |
+| V8 | work = 0000000000000001 | 13 (Work Difficulty Check) | `invalid_work` | `error_invalid_work` |
 | V9 | accepted.network = nano:testnet while paymentRequirements.network = nano:mainnet | 4 (Network Mismatch Check) | `requirements_mismatch` | `error_network_mismatch` |
 | V10 | x402Version = 1 | 1 (x402 Version Check) | `unsupported_x402_version` | `error_x402_version_not_supported` |
-| V11 | payer is an account with no blocks; previous = 64 zeros, balance 0 | 11 (Account Check) | `account_not_found` | `error_account_not_found` |
-| V12 | link_as_account names another account while link is payTo's key | 9 (payTo Check) | `invalid_payto` | `error_payto_link_mismatch` |
+| V11 | payer is an account with no blocks; previous = 64 zeros, balance 0 | 10 (Account Check) | `account_not_found` | `error_account_not_found` |
+| V12 | link_as_account names another account while link is payTo's key | 8 (payTo Check) | `invalid_payto` | `error_payto_link_mismatch` |
 
 <details>
 <summary>Blocks and responses for V3 to V12</summary>
@@ -756,14 +756,14 @@ All are built on the payer's frontier after V1 (`1D60903EFD920FA78746E18F08C021E
 
 </details>
 
-### V13: a confirmed send of 1 raw to `payTo`, presented at the full price (check 10)
+### V13: a confirmed send of 1 raw to `payTo`, presented at the full price (check 9)
 
-Generated on 2026-10-14. The payer sent 1 raw to `payTo` in a real block (`34845D9CCF5F574A3CF01A77ACB3B02AC970FB5745B3A317E35524BAF62E2472`, height 118 of the payer), verified and settled through the facilitator with `accepted.amount` = `1` (success in 549 ms; `block_info` afterwards: `subtype` `send`, `amount` `1`, `confirmed` `true`). The same confirmed block was then presented with `accepted.amount` and `PaymentRequirements.amount` at the full price, `1000000000000000000000000000` raw. Check 10 finds the block with [block_info] and refuses on its `amount` before the confirmation state is considered. The Balance Check cannot run for a block already on the chain, since `account_info` now holds the post-send balance; without the amount clause this block would read as already confirmed, and a **`Resource Server`** with no record for it would deliver a full-price resource for 1 raw. `transaction` stays empty on this refusal: the fault is the amount, not the prior broadcast. Presented once more at `accepted.amount` = `1`, the block is refused as already confirmed and the refusal carries the hash.
+Generated on 2026-10-14. The payer sent 1 raw to `payTo` in a real block (`34845D9CCF5F574A3CF01A77ACB3B02AC970FB5745B3A317E35524BAF62E2472`, height 118 of the payer), verified and settled through the facilitator with `accepted.amount` = `1` (success in 549 ms; `block_info` afterwards: `subtype` `send`, `amount` `1`, `confirmed` `true`). The same confirmed block was then presented with `accepted.amount` and `PaymentRequirements.amount` at the full price, `1000000000000000000000000000` raw. Check 9 finds the block with [block_info] and refuses on its `amount` before the confirmation state is considered. The Balance Check cannot run for a block already on the chain, since `account_info` now holds the post-send balance; without the amount clause this block would read as already confirmed, and a **`Resource Server`** with no record for it would deliver a full-price resource for 1 raw. `transaction` stays empty on this refusal: the fault is the amount, not the prior broadcast. Presented once more at `accepted.amount` = `1`, the block is refused as already confirmed and the refusal carries the hash.
 
 | Step | Presented as | Verification check that fails | `invalidReason` / `errorReason` | `transaction` | Error Vocabulary |
 |---|---|---|---|---|---|
-| V13 | the confirmed 1-raw block with `accepted.amount` = `1000000000000000000000000000` | 10 (Previous Confirmation Check, amount clause) | `amount_mismatch` | `""` | `error_amount_mismatch` |
-| V13, again at 1 raw | the same block with `accepted.amount` = `1` | 10 (Previous Confirmation Check) | `block_already_exists` | the block hash | `error_block_already_confirmed` |
+| V13 | the confirmed 1-raw block with `accepted.amount` = `1000000000000000000000000000` | 9 (Previous Confirmation Check, amount clause) | `amount_mismatch` | `""` | `error_amount_mismatch` |
+| V13, again at 1 raw | the same block with `accepted.amount` = `1` | 9 (Previous Confirmation Check) | `block_already_exists` | the block hash | `error_block_already_confirmed` |
 
 <details>
 <summary>Block, requests and responses for V13</summary>
@@ -939,7 +939,7 @@ The `process` request the broadcaster sends, with the work it generated over `pr
 }
 ```
 
-Presented live to a Facilitator that advertises `workOptional: false`, the `/verify` answer is from check 10, not check 14: the Facilitator computes the hash from the placeholder payload, finds the confirmed V1 block, and names it, `transaction` included on `/settle`. The work field is read only after the chain has been asked.
+Presented live to a Facilitator that advertises `workOptional: false`, the `/verify` answer is from check 9, not check 13: the Facilitator computes the hash from the placeholder payload, finds the confirmed V1 block, and names it, `transaction` included on `/settle`. The work field is read only after the chain has been asked.
 
 `/verify`:
 
@@ -967,7 +967,97 @@ Presented live to a Facilitator that advertises `workOptional: false`, the `/ver
 }
 ```
 
-In the Error Vocabulary the code is `error_block_already_confirmed`, as in V2. A Facilitator that advertises `workOptional: true` and holds no such block would instead defer check 14, run checks 1 to 13, generate work over `previous` at Settlement and `process` the block above with that work.
+In the Error Vocabulary the code is `error_block_already_confirmed`, as in V2. A Facilitator that advertises `workOptional: true` and holds no such block would instead defer check 13, run checks 1 to 12, generate work over `previous` at Settlement and `process` the block above with that work.
+
+### V15: a block built on an unconfirmed frontier, refused and then accepted unchanged (check 11)
+
+Generated on 2026-10-28. Two 1-raw sends from the payer to `payTo`, both signed and worked before anything was broadcast: block A on the payer's confirmed frontier (`D7A5CC4E527C53A127067A8D336BDA6DBDFC9C79E53D104ED8A3A12EAAE2A1F8`, height 131), block B on A's hash. A was broadcast straight to the node with [process] (not through the facilitator), and from the moment the node answered (34 ms) B's `PaymentPayload` was presented to `/verify` every 40 ms, with `account_info` (`include_confirmed`) read beside each probe. Four probes, at 34, 205, 272 and 352 ms after broadcast, were refused: `frontier` was already A while `confirmed_frontier` was still height 131. The fifth probe, at 410 ms, was accepted with the same bytes, `confirmed_frontier` now A, and B was settled through `/settle` unchanged (success in 548 ms). Both blocks are confirmed at heights 132 and 133. The window is the node's confirmation time, under half a second here; a **`Client`** that had rebuilt B on `confirmed_frontier` during those four probes would have signed a fork of A.
+
+| Vector | Input | Check | `invalidReason` (this facilitator) | `transaction` | Error Vocabulary |
+|---|---|---|---|---|---|
+| V15, 34 to 352 ms | B (`previous` = A's hash) while A is the unconfirmed frontier | 11 (Frontier Hash Check, second condition) | `frontier_unconfirmed` | `""` | `error_frontier_not_confirmed` |
+| V15, 410 ms | the same `PaymentPayload` unchanged, A confirmed | passes; settled | | B's hash | |
+
+<details>
+<summary>Block B, the refusal, the acceptance and the settlement</summary>
+
+`PaymentPayload.payload.block` (B):
+
+```json
+{
+  "type": "state",
+  "account": "nano_1i3y944esngqw6wb6ia68dotj4yuqctch9kx8ct65twt8ewi4rdcfgax7ggf",
+  "previous": "C1DB4769A2879E49F7311484BD5E80117DB516C46EF8CD16F1A9499C8792E196",
+  "representative": "nano_3arg3asgtigae3xckabaaewkx3bzsh7nwz7jkmjos79ihyaxwphhm6qgjps4",
+  "balance": "43317291780736537993152545307",
+  "link": "776E05C7A2D3B5887DCE7EB2831078FCCDB9AED77EC6B27CDC05550B07D744A3",
+  "link_as_account": "nano_1xug1q5t7nxoj3ywwzokiea9jz8fq8qfgzp8pbyfr3co3e5xgj755uofu8ue",
+  "signature": "E1850FC859D5078D5D913B33FCE891A5B346B3655FFB442BEDDFE969F30ACF45D7B6095CA939658065F4C80E1F7456ACB89C4B14AC8E6E7D7F1A9D99B3B8BD0C",
+  "work": "885456feea5b2c1d"
+}
+```
+
+`account_info` for the payer at the first probe, 34 ms after A was broadcast (fields not used by the scheme omitted):
+
+```json
+{
+  "frontier": "C1DB4769A2879E49F7311484BD5E80117DB516C46EF8CD16F1A9499C8792E196",
+  "confirmed_frontier": "D7A5CC4E527C53A127067A8D336BDA6DBDFC9C79E53D104ED8A3A12EAAE2A1F8",
+  "balance": "43317291780736537993152545308",
+  "confirmed_balance": "43317291780736537993152545309",
+  "confirmed_height": "131",
+  "block_count": "132"
+}
+```
+
+`/verify` at 34 ms (and at 205, 272 and 352 ms, byte-identical):
+
+```json
+{
+  "isValid": false,
+  "invalidReason": "frontier_unconfirmed",
+  "payer": "nano_1i3y944esngqw6wb6ia68dotj4yuqctch9kx8ct65twt8ewi4rdcfgax7ggf"
+}
+```
+
+`account_info` at the fifth probe, 410 ms:
+
+```json
+{
+  "frontier": "C1DB4769A2879E49F7311484BD5E80117DB516C46EF8CD16F1A9499C8792E196",
+  "confirmed_frontier": "C1DB4769A2879E49F7311484BD5E80117DB516C46EF8CD16F1A9499C8792E196",
+  "balance": "43317291780736537993152545308",
+  "confirmed_balance": "43317291780736537993152545308",
+  "confirmed_height": "132",
+  "block_count": "132"
+}
+```
+
+`/verify` at 410 ms, same request:
+
+```json
+{
+  "isValid": true,
+  "payer": "nano_1i3y944esngqw6wb6ia68dotj4yuqctch9kx8ct65twt8ewi4rdcfgax7ggf"
+}
+```
+
+`/settle`, same request:
+
+```json
+{
+  "success": true,
+  "transaction": "CE21A65EA5DEA3ED96882E731218A5B3F90E35E4C6F7C54EA8711A14369B623E",
+  "network": "nano:mainnet",
+  "payer": "nano_1i3y944esngqw6wb6ia68dotj4yuqctch9kx8ct65twt8ewi4rdcfgax7ggf"
+}
+```
+
+[block_info] afterwards: A `C1DB4769A2879E49F7311484BD5E80117DB516C46EF8CD16F1A9499C8792E196` height 132, `subtype` `send`, `amount` `1`, `confirmed` `true`; B `CE21A65EA5DEA3ED96882E731218A5B3F90E35E4C6F7C54EA8711A14369B623E` height 133, the same.
+
+</details>
+
+In the Error Vocabulary the refusal is `error_frontier_not_confirmed`; this facilitator's `frontier_unconfirmed` predates the vocabulary. The Balance Check (12) did not run during the window: check 11 refused first, so `confirmed_balance` was never compared with B's `balance`. The `/verify` answers above are shown with the `detail` and `invalidMessage` fields omitted; the capture file has them.
 
 ## Appendix
 
